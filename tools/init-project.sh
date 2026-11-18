@@ -68,6 +68,12 @@ if [[ "$old_pkg" != "$pkg" ]]; then
     grep -rlZ --include='*.java' -E "\b${old_rx}\b" "$BACKEND/src" | xargs -0 -r sed -i -E "s/\b${old_rx}\b/${pkg}/g"
     sed -i -E "s/^val basePackage = \".*\"/val basePackage = \"$pkg\"/" "$gradle_file"
     echo "  Java package: $old_pkg -> $pkg"
+    # The new package name changes import order (e.g. pl.* sorts after org.*), so re-format.
+    if have java && (cd "$BACKEND" && ./gradlew --quiet --console=plain spotlessApply) >/dev/null 2>&1; then
+        echo "  Java sources re-formatted (import order after rename)"
+    else
+        echo "  WARN  could not run spotlessApply - run: tools/check.sh backend --fix"
+    fi
 fi
 sed -i -E "s/^group = \".*\"/group = \"$group\"/" "$gradle_file"
 [[ "$old_group" != "$group" ]] && echo "  Gradle group: $old_group -> $group"
